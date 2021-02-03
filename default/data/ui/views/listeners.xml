@@ -2,7 +2,7 @@
   <label>Listeners</label>
   <description>Information on number of listeners tuning in to each show and mount point.</description>
   <fieldset submitButton="false">
-    <input type="time" token="time field">
+    <input type="time" token="timefield" searchWhenChanged="true">
       <label>Time Range</label>
       <default>
         <earliest>-24h@h</earliest>
@@ -15,12 +15,16 @@
       <fieldForLabel>mountpoint</fieldForLabel>
       <fieldForValue>mountpoint</fieldForValue>
       <search>
-        <query>[ rest /services/configs/conf-inputs 
+        <query>[ rest /services/data/inputs/tcp/raw 
     | where 'eai:acl.app'="icecast_app" 
     | fields index ] sourcetype=icecast-error 
     | fields mountpoint
     | dedup mountpoint</query>
       </search>
+    </input>
+    <input type="text" token="schedulelookup" searchWhenChanged="true">
+      <label>Schedule Lookup Name</label>
+      <default>schedule.csv</default>
     </input>
   </fieldset>
   <row>
@@ -28,22 +32,22 @@
       <title>Average Listeners on Selected Mountpoint per Show</title>
       <table>
         <search>
-          <query>[ rest /services/configs/conf-inputs 
+          <query>[ rest /services/data/inputs/tcp/raw 
     | where 'eai:acl.app'="icecast_app" 
     | fields index ] sourcetype=icecast-error event_type=listener-count mountpoint=$mountpoint$
 | eval hour = strftime(_time, "%H"), day = lower(strftime(_time, "%A")) 
-| lookup schedule.csv time as hour 
+| lookup $schedulelookup$ time as hour 
 | eval showname = case(day = "sunday", sunday, day = "monday", monday, day = "tuesday", tuesday, day = "wednesday", wednesday, day = "thursday", thursday, day = "friday", friday, day = "saturday", saturday)
 | append 
-    [ inputlookup schedule.csv 
+    [ inputlookup $schedulelookup$ 
     | untable time day showname 
     | fields showname 
     | dedup showname ] 
 | stats avg(listener_count) as "Average Listeners" by showname
 | eval "Average Listeners" = round('Average Listeners', 2)
 | fillnull value=0</query>
-          <earliest>$time field.earliest$</earliest>
-          <latest>$time field.latest$</latest>
+          <earliest>$timefield.earliest$</earliest>
+          <latest>$timefield.latest$</latest>
         </search>
         <option name="drilldown">none</option>
         <option name="refresh.display">progressbar</option>
@@ -55,13 +59,13 @@
       <title>Average Listeners over Time</title>
       <chart>
         <search>
-          <query>[ rest /services/configs/conf-inputs 
+          <query>[ rest /services/data/inputs/tcp/raw 
     | where 'eai:acl.app'="icecast_app" 
     | fields index ] sourcetype=icecast-error event_type=listener-count
 | timechart avg(listener_count) by mountpoint
 | fillnull value=0</query>
-          <earliest>$time field.earliest$</earliest>
-          <latest>$time field.latest$</latest>
+          <earliest>$timefield.earliest$</earliest>
+          <latest>$timefield.latest$</latest>
         </search>
         <option name="charting.chart">line</option>
         <option name="charting.drilldown">none</option>

@@ -1,13 +1,30 @@
 <form>
   <label>Shows</label>
-  <description>Information on how often shows have been run over the selected time period.</description>
+  <description>Information on how often shows have been run over the selected time period. Add a schedule lookup to use these views.</description>
   <fieldset submitButton="false">
-    <input type="time" token="timefield">
+    <input type="time" token="timefield" searchWhenChanged="true">
       <label>Time Range</label>
       <default>
         <earliest>-30d@d</earliest>
         <latest>now</latest>
       </default>
+    </input>
+    <input type="dropdown" token="mountpoint" searchWhenChanged="true">
+      <label>Mountpoint</label>
+      <default>stream</default>
+      <fieldForLabel>mountpoint</fieldForLabel>
+      <fieldForValue>mountpoint</fieldForValue>
+      <search>
+        <query>[ rest /services/data/inputs/tcp/raw 
+    | where 'eai:acl.app'="icecast_app" 
+    | fields index ] sourcetype=icecast-error 
+    | fields mountpoint
+    | dedup mountpoint</query>
+      </search>
+    </input>
+    <input type="text" token="schedulelookup" searchWhenChanged="true">
+      <label>Schedule Lookup Name</label>
+      <default>schedule.csv</default>
     </input>
   </fieldset>
   <row>
@@ -15,15 +32,15 @@
       <title>Top Shows for Selected Time Period</title>
       <table>
         <search>
-          <query>[ rest /services/configs/conf-inputs 
+          <query>[ rest /services/data/inputs/tcp/raw 
     | where 'eai:acl.app'="icecast_app" 
-    | fields index ] sourcetype=icecast-error event_type=source-log* 
+    | fields index ] sourcetype=icecast-error event_type=source-log* mountpoint=$mountpoint$
 | eval _time = relative_time(_time, "+5m") 
 | eval hour = strftime(_time, "%H"), day = lower(strftime(_time, "%A")) 
-| lookup schedule.csv time as hour 
+| lookup $schedulelookup$ time as hour 
 | eval showname = case(day = "sunday", sunday, day = "monday", monday, day = "tuesday", tuesday, day = "wednesday", wednesday, day = "thursday", thursday, day = "friday", friday, day = "saturday", saturday) 
 | append 
-    [ inputlookup schedule.csv 
+    [ inputlookup $schedulelookup$ 
     | untable time day showname 
     | fields showname 
     | dedup showname ] 
@@ -42,15 +59,15 @@
       <title>Shows Not Run in Selected Time Period</title>
       <table>
         <search>
-          <query>[ rest /services/configs/conf-inputs 
+          <query>[ rest /services/data/inputs/tcp/raw 
     | where 'eai:acl.app'="icecast_app" 
-    | fields index ] sourcetype=icecast-error event_type=source-log* 
+    | fields index ] sourcetype=icecast-error event_type=source-log* mountpoint=$mountpoint$
 | eval _time = relative_time(_time, "+5m") 
 | eval hour = strftime(_time, "%H"), day = lower(strftime(_time, "%A")) 
-| lookup schedule.csv time as hour 
+| lookup $schedulelookup$ time as hour 
 | eval showname = case(day = "sunday", sunday, day = "monday", monday, day = "tuesday", tuesday, day = "wednesday", wednesday, day = "thursday", thursday, day = "friday", friday, day = "saturday", saturday) 
 | append 
-    [ inputlookup schedule.csv 
+    [ inputlookup $schedulelookup$ 
     | untable time day showname 
     | fields showname 
     | dedup showname ] 
@@ -69,16 +86,16 @@
       <title>Schedule</title>
       <table>
         <search>
-          <query>| inputlookup schedule.csv 
+          <query>| inputlookup $schedulelookup$ 
 | untable time day showname 
 | join type=outer showname 
     [ search
-        [ rest /services/configs/conf-inputs 
+        [ rest /services/data/inputs/tcp/raw 
         | where 'eai:acl.app'="icecast_app" 
-        | fields index ] sourcetype=icecast-error event_type=source-log* 
+        | fields index ] sourcetype=icecast-error event_type=source-log* mountpoint=$mountpoint$
     | eval _time = relative_time(_time, "+5m") 
     | eval hour = strftime(_time, "%H"), day = lower(strftime(_time, "%A")) 
-    | lookup schedule.csv time as hour 
+    | lookup $schedulelookup$ time as hour 
     | eval showname = case(day = "sunday", sunday, day = "monday", monday, day = "tuesday", tuesday, day = "wednesday", wednesday, day = "thursday", thursday, day = "friday", friday, day = "saturday", saturday) 
     | stats dc(eval(if(sourcetype="icecast-error", strftime(_time, "%Y-%m-%d"), null()))) as shows_run by showname ]
 | fillnull shows_run value=0

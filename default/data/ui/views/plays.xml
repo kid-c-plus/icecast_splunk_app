@@ -2,7 +2,7 @@
   <label>Plays</label>
   <description>Information on tracks played on specified mount point over the selected time period.</description>
   <fieldset submitButton="false">
-    <input type="time" token="timefield">
+    <input type="time" token="timefield" searchWhenChanged="true">
       <label>Time Range</label>
       <default>
         <earliest>-7d@h</earliest>
@@ -15,12 +15,16 @@
       <fieldForLabel>mountpoint</fieldForLabel>
       <fieldForValue>mountpoint</fieldForValue>
       <search>
-        <query>[ rest /services/configs/conf-inputs 
+        <query>[ rest /services/data/inputs/tcp/raw 
     | where 'eai:acl.app'="icecast_app" 
     | fields index ] sourcetype=icecast-error 
     | fields mountpoint
     | dedup mountpoint</query>
       </search>
+    </input>
+    <input type="text" token="schedulelookup" searchWhenChanged="true">
+      <label>Schedule Lookup Name</label>
+      <default>schedule.csv</default>
     </input>
   </fieldset>
   <row>
@@ -28,9 +32,9 @@
       <title>Songs Played Per Show</title>
       <table>
         <search>
-          <query>[ rest /services/configs/conf-inputs | where 'eai:acl.app'="icecast_app" | fields index ] sourcetype=icecast-error event_type=metadata-s* mountpoint=$mountpoint$
+          <query>[ rest /services/data/inputs/tcp/raw | where 'eai:acl.app'="icecast_app" | fields index ] sourcetype=icecast-error event_type=metadata-s* mountpoint=$mountpoint$
 | eval hour = strftime(_time, "%H"), day = lower(strftime(_time, "%A")) 
-| lookup schedule.csv time as hour 
+| lookup $schedulelookup$ time as hour 
 | eval showname = case(day = "sunday", sunday, day = "monday", monday, day = "tuesday", tuesday, day = "wednesday", wednesday, day = "thursday", thursday, day = "friday", friday, day = "saturday", saturday)
 | rename metadata_value as Song
 | stats count, values(showname) as "Shows Played On" by Song</query>
