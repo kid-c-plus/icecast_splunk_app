@@ -1,6 +1,5 @@
 // ----------------------------------
 // Splunk JS SDK Helpers
-// copied from https://raw.githubusercontent.com/splunk/splunk-app-examples/master/setup_pages/react_setup_page_example/appserver/static/javascript/views/splunk_helpers.js
 // ----------------------------------
 // ---------------------
 // Process Helpers
