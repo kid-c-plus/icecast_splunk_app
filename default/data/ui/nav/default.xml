@@ -1,0 +1,5 @@
+<nav search_view="search">
+  <view name="shows" default='true' />
+  <view name="listeners" />
+  <view name="plays" />
+</nav>

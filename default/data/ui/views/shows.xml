@@ -1,0 +1,105 @@
+<form>
+  <label>Shows</label>
+  <description>Information on how often shows have been run over the selected time period.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="timefield">
+      <label>Time Range</label>
+      <default>
+        <earliest>-30d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Top Shows for Selected Time Period</title>
+      <table>
+        <search>
+          <query>[ rest /services/configs/conf-inputs 
+    | where 'eai:acl.app'="icecast_app" 
+    | fields index ] sourcetype=icecast-error event_type=source-log* 
+| eval _time = relative_time(_time, "+5m") 
+| eval hour = strftime(_time, "%H"), day = lower(strftime(_time, "%A")) 
+| lookup schedule.csv time as hour 
+| eval showname = case(day = "sunday", sunday, day = "monday", monday, day = "tuesday", tuesday, day = "wednesday", wednesday, day = "thursday", thursday, day = "friday", friday, day = "saturday", saturday) 
+| append 
+    [ inputlookup schedule.csv 
+    | untable time day showname 
+    | fields showname 
+    | dedup showname ] 
+| stats dc(eval(if(sourcetype="icecast-error", strftime(_time, "%Y-%m-%d"), null()))) as shows_run by showname
+| sort - shows_run
+| head 10
+| rename showname as Showname shows_run as "Shows Run"</query>
+          <earliest>$timefield.earliest$</earliest>
+          <latest>$timefield.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Shows Not Run in Selected Time Period</title>
+      <table>
+        <search>
+          <query>[ rest /services/configs/conf-inputs 
+    | where 'eai:acl.app'="icecast_app" 
+    | fields index ] sourcetype=icecast-error event_type=source-log* 
+| eval _time = relative_time(_time, "+5m") 
+| eval hour = strftime(_time, "%H"), day = lower(strftime(_time, "%A")) 
+| lookup schedule.csv time as hour 
+| eval showname = case(day = "sunday", sunday, day = "monday", monday, day = "tuesday", tuesday, day = "wednesday", wednesday, day = "thursday", thursday, day = "friday", friday, day = "saturday", saturday) 
+| append 
+    [ inputlookup schedule.csv 
+    | untable time day showname 
+    | fields showname 
+    | dedup showname ] 
+| stats dc(eval(if(sourcetype="icecast-error", strftime(_time, "%Y-%m-%d"), null()))) as shows_run by showname
+| where shows_run = 0
+| rename showname as Showname shows_run as "Shows Run"</query>
+          <earliest>$timefield.earliest$</earliest>
+          <latest>$timefield.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Schedule</title>
+      <table>
+        <search>
+          <query>| inputlookup schedule.csv 
+| untable time day showname 
+| join type=outer showname 
+    [ search
+        [ rest /services/configs/conf-inputs 
+        | where 'eai:acl.app'="icecast_app" 
+        | fields index ] sourcetype=icecast-error event_type=source-log* 
+    | eval _time = relative_time(_time, "+5m") 
+    | eval hour = strftime(_time, "%H"), day = lower(strftime(_time, "%A")) 
+    | lookup schedule.csv time as hour 
+    | eval showname = case(day = "sunday", sunday, day = "monday", monday, day = "tuesday", tuesday, day = "wednesday", wednesday, day = "thursday", thursday, day = "friday", friday, day = "saturday", saturday) 
+    | stats dc(eval(if(sourcetype="icecast-error", strftime(_time, "%Y-%m-%d"), null()))) as shows_run by showname ]
+| fillnull shows_run value=0
+| eval showval = showname.": ".shows_run." shows"
+| xyseries time day showval
+| sort time
+| eval time = time.":00"
+| fields time sunday monday tuesday wednesday thursday friday saturday</query>
+          <earliest>$timefield.earliest$</earliest>
+          <latest>$timefield.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>

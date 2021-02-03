@@ -1,0 +1,43 @@
+[]
+export = system
+
+[app/ui]
+version = 8.1.1
+modtime = 1612027055.436157000
+
+[app/launcher]
+version = 8.1.1
+modtime = 1612027055.440789000
+
+[app/install/state]
+version = 8.1.1
+modtime = 1612072114.868424000
+
+[inputs/%5Btcp%3A514%5D]
+owner = rick
+version = 8.1.1
+modtime = 1612077144.183980000
+
+[app/install]
+version = 8.1.1
+modtime = 1612283557.868856000
+
+[inputs/tcp%3A514]
+owner = rick
+version = 8.1.1
+modtime = 1612283557.811447000
+
+[lookups/schedule.csv]
+access = read : [ * ]
+export = system
+owner = rick
+version = 8.1.1
+modtime = 1612312504.626125000
+
+[views/shows]
+version = 8.1.1
+modtime = 1612330926.962730000
+
+[views/listeners]
+version = 8.1.1
+modtime = 1612375794.826983000

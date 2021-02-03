@@ -1,0 +1,9 @@
+<dashboard isDashboard="false" script="javascript/setup_page.js">
+    <row>
+        <panel>
+            <html>
+                <div id="root"> HELLO! V2 </div>
+            </html>
+        </panel>
+    </row>
+</dashboard>
